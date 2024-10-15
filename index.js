@@ -1,8 +1,8 @@
 const http = require('http');
 const path = require('path');
-const { createCanvas, registerFont } = require('canvas');
 const fs = require('fs');
 const axios = require('axios');
+const sharp = require('sharp'); // Add sharp library
 registerFont('./Balonku-Regular.ttf', { family: 'Balonku' });
 
 async function findHolders(tokenAddress) {
@@ -51,26 +51,38 @@ async function findHolders(tokenAddress) {
 }
 
 async function generateHolderImage(mint) {
-  const holders = await findHolders(mint)
-  const holderCount = holders.length.toString()
+  const holders = await findHolders(mint);
+  const holderCount = holders.length.toString();
   const width = 500;
   const height = 500;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'black';
-  ctx.fillRect(0, 0, width, height);
-  ctx.font = '60px Balonku';
-  ctx.fillStyle = '#f5a991';
-  ctx.textAlign = 'center';
-  ctx.fillText('HOLDER', width / 2, 200);
-  ctx.font = '100px Balonku';
-  ctx.fillStyle = '#00FF00';
-  ctx.fillText(holderCount, width / 2, 400);
-  const buffer = canvas.toBuffer('image/png');
-  fs.writeFileSync(`./holder.png`, buffer);
-  return buffer
-}
 
+  // Create an image using sharp
+  const image = await sharp({
+    create: {
+      width: width,
+      height: height,
+      channels: 3,
+      background: { r: 0, g: 0, b: 0 } // Black background
+    }
+  })
+  .composite([
+    {
+      input: Buffer.from(`
+        <svg width="${width}" height="${height}">
+          <text x="50%" y="200" font-family="Balonku" font-size="60" fill="#f5a991" text-anchor="middle">HOLDER</text>
+          <text x="50%" y="400" font-family="Balonku" font-size="100" fill="#00FF00" text-anchor="middle">${holderCount}</text>
+        </svg>
+      `),
+      top: 0,
+      left: 0
+    }
+  ])
+  .png()
+  .toBuffer();
+
+  fs.writeFileSync(`./holder.png`, image);
+  return image;
+}
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/holders') {
