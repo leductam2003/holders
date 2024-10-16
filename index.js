@@ -1,6 +1,5 @@
 const http = require('http');
 const axios = require('axios');
-registerFont('./Balonku-Regular.ttf', { family: 'Balonku' });
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/holders') {
